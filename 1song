@@ -1,1 +1,63 @@
-e
+import mido
+from mido import MidiFile, MidiTrack, Message
+
+# Constants
+BPM = 85
+TICKS_PER_BEAT = 480
+BEAT_DURATION = int(60 / BPM * TICKS_PER_BEAT)
+A_MINOR_SCALE = [57, 59, 60, 62, 64, 65, 67, 69]
+
+# 4 on the floor drum pattern with snare
+def drum_pattern():
+    pattern = MidiTrack()
+    for i in range(4):
+        pattern.append(Message('note_on', note=36, velocity=64, time=0))  # Kick drum
+        if i % 2 == 1:
+            pattern.append(Message('note_on', note=38, velocity=64, time=0))  # Snare drum
+        pattern.append(Message('note_off', note=36, velocity=64, time=BEAT_DURATION))
+        pattern.append(Message('note_off', note=38, velocity=64, time=BEAT_DURATION))
+    return pattern
+
+# Basic melody pattern for verse and hook
+def melody_pattern(scale):
+    pattern = MidiTrack()
+    for note in scale:
+        pattern.append(Message('note_on', note=note, velocity=64, time=0))
+        pattern.append(Message('note_off', note=note, velocity=64, time=BEAT_DURATION))
+    return pattern
+
+# Basic bass line pattern
+def bass_pattern():
+    pattern = MidiTrack()
+    bass_notes = [A_MINOR_SCALE[0], A_MINOR_SCALE[3], A_MINOR_SCALE[2], A_MINOR_SCALE[4]]
+    for note in bass_notes:
+        pattern.append(Message('note_on', note=note - 12, velocity=64, time=0))  # One octave lower
+        pattern.append(Message('note_off', note=note - 12, velocity=64, time=2 * BEAT_DURATION))
+    return pattern
+
+# Create MIDI file
+song = MidiFile(ticks_per_beat=TICKS_PER_BEAT)
+
+# Create drums, melody, bass, and pad tracks
+song.tracks.append(drum_pattern())
+song.tracks.append(melody_pattern(A_MINOR_SCALE))
+song.tracks.append(bass_pattern())
+
+# Set instruments: Drums, Lead, Bass, Pad
+song.tracks[0].append(Message('program_change', program=0, time=0))   # Acoustic Grand Piano (as drums)
+song.tracks[1].append(Message('program_change', program=80, time=0))  # Lead 1 (square)
+song.tracks[2].append(Message('program_change', program=32, time=0))  # Acoustic Bass
+
+# Sequence song structure
+for _ in range(2):
+    for _ in range(8):  # 8 bar verse
+        song.tracks[0].extend(drum_pattern())
+        song.tracks[1].extend(melody_pattern(A_MINOR_SCALE))
+        song.tracks[2].extend(bass_pattern())
+    for _ in range(4):  # 4 bar hook
+        song.tracks[0].extend(drum_pattern())
+        song.tracks[1].extend(melody_pattern(A_MINOR_SCALE[::-1]))
+        song.tracks[2].extend(bass_pattern())
+
+# Save the song to a MIDI file
+song.save('enhanced_song_output.mid')
